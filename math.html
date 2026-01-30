@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>小小數學冒險 - 負數挑戰版</title>
+    <style>
+        body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #e8eaf6; padding-top: 30px; }
+        .progress-container { width: 400px; background-color: #cfd8dc; border-radius: 10px; margin-bottom: 20px; }
+        #progress-bar { width: 0%; height: 20px; background-color: #4caf50; border-radius: 10px; transition: width 0.3s ease; }
+        .card { background: white; padding: 30px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); text-align: center; width: 400px; }
+        .btn-group button { margin: 5px; padding: 12px 20px; border: none; border-radius: 12px; cursor: pointer; color: white; font-weight: bold; font-size: 16px; }
+        .lv1 { background-color: #4caf50; } .lv2 { background-color: #ff9800; } .lv3 { background-color: #f44336; }
+        #equation { font-size: 42px; margin: 25px 0; color: #1a237e; font-weight: bold; min-height: 60px; }
+        input { font-size: 28px; width: 120px; text-align: center; padding: 8px; border: 3px solid #c5cae9; border-radius: 15px; outline: none; }
+        #check-btn { background-color: #3f51b5; color: white; border: none; padding: 12px 40px; font-size: 20px; border-radius: 50px; margin-top: 25px; cursor: pointer; }
+        #info-panel { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 16px; color: #555; }
+        #msg { margin-top: 20px; font-size: 18px; font-weight: bold; min-height: 30px; }
+        .score-box { color: #e91e63; font-weight: bold; }
+        .timer-box { color: #2196f3; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="progress-container">
+        <div id="progress-bar"></div>
+    </div>
+
+    <div class="card">
+        <div id="info-panel">
+            <span>題次: <span id="current-count">0</span>/10</span>
+            <span>⏱️: <span id="timer" class="timer-box">0</span>s</span>
+            <span>分數: <span id="total-score" class="score-box">0</span></span>
+        </div>
+
+        <div id="difficulty-area">
+            <h2>選擇難度 (含負數練習)</h2>
+            <p>每回合 10 題，準備好了嗎？</p>
+            <div class="btn-group">
+                <button class="lv1" onclick="startGame(1)">入門</button>
+                <button class="lv2" onclick="startGame(2)">進階</button>
+                <button class="lv3" onclick="startGame(3)">挑戰</button>
+            </div>
+        </div>
+
+        <div id="game-area" style="display: none;">
+            <div id="equation">載入中...</div>
+            <div>x = <input type="number" id="userAnswer" autocomplete="off" placeholder="?"></div>
+            <button id="check-btn" onclick="checkAnswer()">檢查答案</button>
+            <div id="msg"></div>
+        </div>
+    </div>
+
+<script>
+    let currentAnswer = null;
+    let score = 0;
+    let questionCount = 0;
+    let difficulty = 1;
+    let isWaiting = false;
+    
+    // 計時器相關變數
+    let timerSeconds = 0;
+    let timerInterval = null;
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(type) {
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        if (type === 'correct') {
+            oscillator.frequency.setValueAtTime(523, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.2);
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.3);
+        } else {
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(150, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.3);
+        }
+    }
+
+    function getRandomInt(max, includeZero = false) {
+        let num = Math.floor(Math.random() * (max * 2 + 1)) - max;
+        if (!includeZero && num === 0) return getRandomInt(max, false);
+        return num;
+    }
+
+    function formatTerm(val, isFirst = false) {
+        if (val === 0) return "";
+        if (isFirst) return val.toString();
+        return val > 0 ? `+ ${val}` : `- ${Math.abs(val)}`;
+    }
+
+    // 開始計時
+    function startTimer() {
+        timerSeconds = 0;
+        document.getElementById('timer').innerText = timerSeconds;
+        timerInterval = setInterval(() => {
+            timerSeconds++;
+            document.getElementById('timer').innerText = timerSeconds;
+        }, 1000);
+    }
+
+    // 停止計時
+    function stopTimer() {
+        clearInterval(timerInterval);
+    }
+
+    function startGame(lv) {
+        difficulty = lv;
+        score = 0;
+        questionCount = 0;
+        document.getElementById('difficulty-area').style.display = 'none';
+        document.getElementById('game-area').style.display = 'block';
+        startTimer(); // 開始計時
+        nextQuestion();
+    }
+
+    function nextQuestion() {
+        if (questionCount >= 10) { 
+            stopTimer(); // 結束計時
+            endGame(); 
+            return; 
+        }
+        
+        isWaiting = false;
+        questionCount++;
+        document.getElementById('current-count').innerText = questionCount;
+        updateProgressBar();
+
+        let a, b, c, d, x, eqText;
+        x = getRandomInt(20, true); 
+        
+        if (difficulty === 1) {
+            b = getRandomInt(20);
+            c = x + b;
+            eqText = `x ${formatTerm(b)} = ${c}`;
+        } else if (difficulty === 2) {
+            a = getRandomInt(9); 
+            b = getRandomInt(20);
+            c = a * x + b;
+            let aLabel = a === 1 ? "" : (a === -1 ? "-" : a);
+            eqText = `${aLabel}x ${formatTerm(b)} = ${c}`;
+        } else {
+            a = getRandomInt(9);
+            c = getRandomInt(5);
+            if (a === c) c++; 
+            d = getRandomInt(20);
+            b = (c * x + d) - (a * x);
+            let aLabel = a === 1 ? "" : (a === -1 ? "-" : a);
+            let cLabel = c === 1 ? "" : (c === -1 ? "-" : c);
+            eqText = `${aLabel}x ${formatTerm(b)} = ${cLabel}x ${formatTerm(d)}`;
+        }
+        
+        currentAnswer = x;
+        document.getElementById('equation').innerText = eqText;
+        document.getElementById('msg').innerText = "";
+        document.getElementById('userAnswer').value = "";
+        document.getElementById('userAnswer').focus();
+    }
+
+    function checkAnswer() {
+        if (isWaiting) return;
+        const userVal = parseInt(document.getElementById('userAnswer').value);
+        const msg = document.getElementById('msg');
+        
+        if (isNaN(userVal)) return;
+        isWaiting = true;
+
+        if (userVal === currentAnswer) {
+            playSound('correct');
+            score += 10;
+            document.getElementById('total-score').innerText = score;
+            msg.innerHTML = "<span style='color:green'>🌟 太棒了！答對了！</span>";
+        } else {
+            playSound('wrong');
+            msg.innerHTML = `<span style='color:red'>❌ 可惜！正確答案是 ${currentAnswer}</span>`;
+        }
+        
+        setTimeout(nextQuestion, 1500); 
+    }
+
+    function updateProgressBar() {
+        document.getElementById('progress-bar').style.width = (questionCount / 10) * 100 + "%";
+    }
+
+    function endGame() {
+        document.getElementById('game-area').innerHTML = `
+            <h2 style="color: #3f51b5;">練習結束！</h2>
+            <div style="font-size: 24px; margin: 10px;">最終得分：<span class="score-box">${score}</span></div>
+            <div style="font-size: 20px; margin: 10px;">總耗時：<span class="timer-box">${timerSeconds} 秒</span></div>
+            <p>${score >= 80 ? "速度與準度兼具，厲害！" : "再多練習幾次會更快喔！"}</p>
+            <button onclick="location.reload()" style="padding: 10px 20px; border-radius: 10px; border: none; background: #4caf50; color: white; cursor: pointer;">回主選單</button>
+        `;
+    }
+
+    document.getElementById('userAnswer').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') checkAnswer();
+    });
+</script>
+</body>
+</html>
