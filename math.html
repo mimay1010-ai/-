@@ -3,14 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>一元一次方程挑戰賽 - 穩定修復版</title>
+    <title>一元一次方程挑戰賽 - 效能優化版</title>
     <style>
         body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; background-color: #f0f4f8; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; max-width: 1050px; width: 100%; }
         .video-box { flex: 1.2; min-width: 350px; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .game-box { flex: 1; min-width: 350px; background: white; padding: 30px; border-radius: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; }
-        .iframe-container { position: relative; width: 100%; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 10px; background: #000; }
-        .iframe-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+        /* 影片預覽容器 */
+        .video-placeholder { position: relative; width: 100%; padding-bottom: 56.25%; background: #000; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .video-placeholder img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.7; }
+        .play-btn { position: absolute; width: 70px; height: 70px; background: rgba(255,0,0,0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 30px; box-shadow: 0 0 20px rgba(0,0,0,0.3); transition: 0.3s; z-index: 2; }
+        .play-btn:hover { transform: scale(1.1); background: #ff0000; }
+        iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; border-radius: 10px; }
+        
         #progress-bar { width: 100%; height: 12px; background: #e0e0e0; border-radius: 6px; margin-bottom: 20px; overflow: hidden; }
         #progress-fill { width: 0%; height: 100%; background: #4caf50; transition: width 0.3s; }
         #equation { font-size: 40px; margin: 20px 0; color: #1a237e; font-weight: bold; min-height: 60px; }
@@ -18,7 +23,6 @@
         .report-form input { width: 85%; font-size: 16px; margin: 5px 0; }
         button { padding: 12px 25px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 18px; transition: 0.2s; margin: 5px; }
         .btn-main { background: #3f51b5; color: white; width: 100%; margin-top: 20px; }
-        .btn-yt { display: inline-block; margin-top: 15px; padding: 10px 20px; background: #ff0000; color: white; text-decoration: none; border-radius: 10px; font-size: 14px; }
         #msg { margin-top: 15px; font-size: 18px; font-weight: bold; min-height: 24px; }
         h3 { color: #1a237e; margin-top: 0; }
     </style>
@@ -29,15 +33,15 @@
 
     <div class="container">
         <div class="video-box">
-            <h3>📖 觀念複習 (均一教育平台)</h3>
-            <div class="iframe-container">
-                <iframe src="https://www.youtube.com/embed/DfV4cVHzJnE?rel=0&modestbranding=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+            <h3>📖 觀念複習</h3>
+            <div class="video-placeholder" id="videoContainer" onclick="loadVideo()">
+                <img src="https://img.youtube.com/vi/DfV4cVHzJnE/maxresdefault.jpg" alt="影片縮圖">
+                <div class="play-btn">▶</div>
             </div>
-            <a href="https://www.youtube.com/watch?v=DfV4cVHzJnE" target="_blank" class="btn-yt">📺 如果上方無法播放，請點我直接看影片</a>
             <p style="font-size: 15px; color: #444; margin-top: 15px; line-height: 1.6;">
-                💡 <b>本課重點預習：</b><br>
-                1. <b>什麼是方程式？</b> 具有未知數且最高次方是一次方的等式。<br>
-                2. <b>什麼是解？</b> 能讓等式左右兩邊相等的數，就是該方程式的解。
+                💡 <b>本課重點：</b><br>
+                最高次方為一次方的等式即為一元一次方程式。<br>
+                解就是讓等式成立的數值。
             </p>
         </div>
 
@@ -69,6 +73,13 @@
     let currentAnswer, score = 0, questionCount = 0, difficulty = 1;
     let timerSeconds = 0, timerInterval, isWaiting = false, generatedVCode = 0;
 
+    // 點擊後才載入影片的函式
+    function loadVideo() {
+        const container = document.getElementById('videoContainer');
+        container.innerHTML = `<iframe src="https://www.youtube.com/embed/DfV4cVHzJnE?autoplay=1&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+    }
+
+    // --- 以下遊戲邏輯保持不變 ---
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playSound(f) {
         const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
