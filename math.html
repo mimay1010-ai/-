@@ -2,156 +2,80 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>小小數學冒險 - 負數挑戰版</title>
+    <title>一元一次方程挑戰賽 - 最終連動版</title>
     <style>
-        body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #e8eaf6; padding-top: 30px; }
-        .progress-container { width: 400px; background-color: #cfd8dc; border-radius: 10px; margin-bottom: 20px; }
-        #progress-bar { width: 0%; height: 20px; background-color: #4caf50; border-radius: 10px; transition: width 0.3s ease; }
-        .card { background: white; padding: 30px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); text-align: center; width: 400px; }
-        .btn-group button { margin: 5px; padding: 12px 20px; border: none; border-radius: 12px; cursor: pointer; color: white; font-weight: bold; font-size: 16px; }
-        .lv1 { background-color: #4caf50; } .lv2 { background-color: #ff9800; } .lv3 { background-color: #f44336; }
-        #equation { font-size: 42px; margin: 25px 0; color: #1a237e; font-weight: bold; min-height: 60px; }
-        input { font-size: 28px; width: 120px; text-align: center; padding: 8px; border: 3px solid #c5cae9; border-radius: 15px; outline: none; }
-        #check-btn { background-color: #3f51b5; color: white; border: none; padding: 12px 40px; font-size: 20px; border-radius: 50px; margin-top: 25px; cursor: pointer; }
-        #info-panel { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 16px; color: #555; }
-        #msg { margin-top: 20px; font-size: 18px; font-weight: bold; min-height: 30px; }
-        .score-box { color: #e91e63; font-weight: bold; }
-        .timer-box { color: #2196f3; font-weight: bold; }
+        body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #f0f4f8; padding-top: 30px; }
+        .card { background: white; padding: 30px; border-radius: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 400px; }
+        #progress-bar { width: 100%; height: 12px; background: #e0e0e0; border-radius: 6px; margin-bottom: 20px; overflow: hidden; }
+        #progress-fill { width: 0%; height: 100%; background: #4caf50; transition: width 0.3s; }
+        #equation { font-size: 44px; margin: 25px 0; color: #1a237e; font-weight: bold; min-height: 60px; }
+        input[type="number"], .report-form input { font-size: 24px; width: 140px; text-align: center; padding: 10px; border: 2px solid #bbdefb; border-radius: 12px; outline: none; }
+        .report-form input { width: 85%; font-size: 16px; margin: 5px 0; }
+        button { padding: 12px 25px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 18px; transition: 0.2s; margin: 5px; }
+        .btn-main { background: #3f51b5; color: white; width: 100%; margin-top: 20px; }
+        #msg { margin-top: 15px; font-size: 18px; font-weight: bold; min-height: 24px; }
     </style>
 </head>
 <body>
 
-    <div class="progress-container">
-        <div id="progress-bar"></div>
-    </div>
-
     <div class="card">
-        <div id="info-panel">
+        <div id="progress-bar"><div id="progress-fill"></div></div>
+        
+        <div id="info-panel" style="display:flex; justify-content: space-between; margin-bottom: 10px;">
             <span>題次: <span id="current-count">0</span>/10</span>
-            <span>⏱️: <span id="timer" class="timer-box">0</span>s</span>
-            <span>分數: <span id="total-score" class="score-box">0</span></span>
+            <span style="color:#2196f3;">⏱️: <span id="timer">0</span>s</span>
+            <span style="color:#e91e63;">分數: <span id="total-score">0</span></span>
         </div>
 
         <div id="difficulty-area">
-            <h2>選擇難度 (含負數練習)</h2>
-            <p>每回合 10 題，準備好了嗎？</p>
-            <div class="btn-group">
-                <button class="lv1" onclick="startGame(1)">入門</button>
-                <button class="lv2" onclick="startGame(2)">進階</button>
-                <button class="lv3" onclick="startGame(3)">挑戰</button>
-            </div>
+            <h2 style="color:#3f51b5;">數學挑戰賽</h2>
+            <p>拿滿分即可回報老師喔！</p>
+            <button style="background:#4caf50; color:white;" onclick="startGame(1)">🟢 入門</button>
+            <button style="background:#ff9800; color:white;" onclick="startGame(2)">🟡 進階</button>
+            <button style="background:#f44336; color:white;" onclick="startGame(3)">🔴 挑戰</button>
         </div>
 
-        <div id="game-area" style="display: none;">
+        <div id="game-area" style="display:none;">
             <div id="equation">載入中...</div>
             <div>x = <input type="number" id="userAnswer" autocomplete="off" placeholder="?"></div>
-            <button id="check-btn" onclick="checkAnswer()">檢查答案</button>
+            <button class="btn-main" onclick="checkAnswer()">檢查答案</button>
             <div id="msg"></div>
         </div>
     </div>
 
 <script>
-    let currentAnswer = null;
-    let score = 0;
-    let questionCount = 0;
-    let difficulty = 1;
-    let isWaiting = false;
-    
-    // 計時器相關變數
-    let timerSeconds = 0;
-    let timerInterval = null;
+    let currentAnswer, score = 0, questionCount = 0, difficulty = 1;
+    let timerSeconds = 0, timerInterval, isWaiting = false, generatedVCode = 0;
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    function playSound(type) {
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        if (type === 'correct') {
-            oscillator.frequency.setValueAtTime(523, audioCtx.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.2);
-            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.3);
-        } else {
-            oscillator.type = 'sawtooth';
-            oscillator.frequency.setValueAtTime(150, audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.3);
-        }
-    }
-
-    function getRandomInt(max, includeZero = false) {
-        let num = Math.floor(Math.random() * (max * 2 + 1)) - max;
-        if (!includeZero && num === 0) return getRandomInt(max, false);
-        return num;
-    }
-
-    function formatTerm(val, isFirst = false) {
-        if (val === 0) return "";
-        if (isFirst) return val.toString();
-        return val > 0 ? `+ ${val}` : `- ${Math.abs(val)}`;
-    }
-
-    // 開始計時
-    function startTimer() {
-        timerSeconds = 0;
-        document.getElementById('timer').innerText = timerSeconds;
-        timerInterval = setInterval(() => {
-            timerSeconds++;
-            document.getElementById('timer').innerText = timerSeconds;
-        }, 1000);
-    }
-
-    // 停止計時
-    function stopTimer() {
-        clearInterval(timerInterval);
+    function playSound(f) {
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.frequency.setValueAtTime(f, audioCtx.currentTime);
+        g.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        o.start(); o.stop(audioCtx.currentTime + 0.15);
     }
 
     function startGame(lv) {
-        difficulty = lv;
-        score = 0;
-        questionCount = 0;
+        difficulty = lv; score = 0; questionCount = 0; timerSeconds = 0;
         document.getElementById('difficulty-area').style.display = 'none';
         document.getElementById('game-area').style.display = 'block';
-        startTimer(); // 開始計時
+        timerInterval = setInterval(() => { timerSeconds++; document.getElementById('timer').innerText = timerSeconds; }, 1000);
         nextQuestion();
     }
 
     function nextQuestion() {
-        if (questionCount >= 10) { 
-            stopTimer(); // 結束計時
-            endGame(); 
-            return; 
-        }
-        
-        isWaiting = false;
-        questionCount++;
+        if (questionCount >= 10) { clearInterval(timerInterval); endGame(); return; }
+        isWaiting = false; questionCount++;
         document.getElementById('current-count').innerText = questionCount;
-        updateProgressBar();
-
-        let a, b, c, d, x, eqText;
-        x = getRandomInt(20, true); 
+        document.getElementById('progress-fill').style.width = (questionCount/10)*100 + "%";
         
-        if (difficulty === 1) {
-            b = getRandomInt(20);
-            c = x + b;
-            eqText = `x ${formatTerm(b)} = ${c}`;
-        } else if (difficulty === 2) {
-            a = getRandomInt(9); 
-            b = getRandomInt(20);
-            c = a * x + b;
-            let aLabel = a === 1 ? "" : (a === -1 ? "-" : a);
-            eqText = `${aLabel}x ${formatTerm(b)} = ${c}`;
-        } else {
-            a = getRandomInt(9);
-            c = getRandomInt(5);
-            if (a === c) c++; 
-            d = getRandomInt(20);
-            b = (c * x + d) - (a * x);
-            let aLabel = a === 1 ? "" : (a === -1 ? "-" : a);
-            let cLabel = c === 1 ? "" : (c === -1 ? "-" : c);
-            eqText = `${aLabel}x ${formatTerm(b)} = ${cLabel}x ${formatTerm(d)}`;
-        }
+        let x = Math.floor(Math.random() * 41) - 20; 
+        let a, b, c, eqText;
+        if (difficulty === 1) { a = 1; b = Math.floor(Math.random() * 21) - 10; c = x + b; eqText = `x ${b >= 0 ? '+ ' + b : '- ' + Math.abs(b)} = ${c}`; }
+        else if (difficulty === 2) { a = Math.floor(Math.random() * 9) - 4 || 2; b = Math.floor(Math.random() * 21) - 10; c = a * x + b; let aDisp = (a === 1) ? "" : (a === -1 ? "-" : a); eqText = `${aDisp}x ${b >= 0 ? '+ ' + b : '- ' + Math.abs(b)} = ${c}`; }
+        else { a = Math.floor(Math.random() * 5) + 6; let c_val = Math.floor(Math.random() * 4) + 1; let d = Math.floor(Math.random() * 21) - 10; b = (c_val * x + d) - (a * x); let aDisp = (a === 1) ? "" : (a === -1 ? "-" : a); let cDisp = (c_val === 1) ? "" : (c_val === -1 ? "-" : c_val); eqText = `${aDisp}x ${b >= 0 ? '+ ' + b : '- ' + Math.abs(b)} = ${cDisp}x ${d >= 0 ? '+ ' + d : '- ' + Math.abs(d)}`; }
         
         currentAnswer = x;
         document.getElementById('equation').innerText = eqText;
@@ -162,42 +86,67 @@
 
     function checkAnswer() {
         if (isWaiting) return;
-        const userVal = parseInt(document.getElementById('userAnswer').value);
-        const msg = document.getElementById('msg');
-        
-        if (isNaN(userVal)) return;
+        let val = parseInt(document.getElementById('userAnswer').value);
+        if (isNaN(val)) return;
         isWaiting = true;
-
-        if (userVal === currentAnswer) {
-            playSound('correct');
-            score += 10;
-            document.getElementById('total-score').innerText = score;
-            msg.innerHTML = "<span style='color:green'>🌟 太棒了！答對了！</span>";
-        } else {
-            playSound('wrong');
-            msg.innerHTML = `<span style='color:red'>❌ 可惜！正確答案是 ${currentAnswer}</span>`;
-        }
-        
-        setTimeout(nextQuestion, 1500); 
-    }
-
-    function updateProgressBar() {
-        document.getElementById('progress-bar').style.width = (questionCount / 10) * 100 + "%";
+        if (val === currentAnswer) { playSound(880); score += 10; document.getElementById('total-score').innerText = score; document.getElementById('msg').innerHTML = "<span style='color:green'>🌟 答對了！</span>"; }
+        else { playSound(220); document.getElementById('msg').innerHTML = `<span style='color:red'>❌ 正確答案是 ${currentAnswer}</span>`; }
+        setTimeout(nextQuestion, 1200);
     }
 
     function endGame() {
-        document.getElementById('game-area').innerHTML = `
-            <h2 style="color: #3f51b5;">練習結束！</h2>
-            <div style="font-size: 24px; margin: 10px;">最終得分：<span class="score-box">${score}</span></div>
-            <div style="font-size: 20px; margin: 10px;">總耗時：<span class="timer-box">${timerSeconds} 秒</span></div>
-            <p>${score >= 80 ? "速度與準度兼具，厲害！" : "再多練習幾次會更快喔！"}</p>
-            <button onclick="location.reload()" style="padding: 10px 20px; border-radius: 10px; border: none; background: #4caf50; color: white; cursor: pointer;">回主選單</button>
-        `;
+        let isFullScore = (score === 100);
+        let endHTML = `<h2>練習結束</h2><p>得分：${score}</p><p>耗時：${timerSeconds} 秒</p>`;
+        if (isFullScore) {
+            endHTML += `
+                <div class="report-form" style="border: 2px solid #2196f3; background: #e3f2fd; padding:15px; border-radius:15px;">
+                    <p style="color:#1a237e; font-weight:bold;">🏆 全對達成！請登錄紀錄</p>
+                    <input type="text" id="stuClass" placeholder="班級 (如:601)">
+                    <input type="text" id="stuNo" placeholder="座號 (如:05)" oninput="updateVCode(this.value)">
+                    <input type="text" id="stuName" placeholder="學生姓名">
+                    <div id="vcode-area" style="margin:10px 0; padding:10px; background:white; border-radius:10px; font-weight:bold; color:red; font-size:24px;">🔑 驗證碼：--</div>
+                    <input type="text" id="inputVCode" placeholder="輸入上方紅字驗證碼">
+                    <button style="background:#2196f3; color:white; width:100%;" onclick="submitToGoogle()">確認送出成果</button>
+                </div>`;
+        } else {
+            endHTML += `<button style="background:#4caf50; color:white;" onclick="location.reload()">重新挑戰</button>`;
+        }
+        document.getElementById('game-area').innerHTML = endHTML;
     }
 
-    document.getElementById('userAnswer').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') checkAnswer();
-    });
+    function updateVCode(noVal) {
+        let no = parseInt(noVal);
+        if (!isNaN(no)) {
+            generatedVCode = (no * 3) * 100 + Math.floor(Math.random() * 90 + 10);
+            document.getElementById('vcode-area').innerText = `🔑 驗證碼：${generatedVCode}`;
+        }
+    }
+
+    function submitToGoogle() {
+        const sClass = document.getElementById('stuClass').value;
+        const sNo = document.getElementById('stuNo').value;
+        const sName = document.getElementById('stuName').value;
+        const sVCode = document.getElementById('inputVCode').value;
+        const now = new Date();
+        const timeStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+
+        if(!sClass || !sNo || !sName || !sVCode) { alert("請填寫完整喔！"); return; }
+        if(parseInt(sVCode) !== generatedVCode) { alert("驗證碼錯誤！"); return; }
+
+        const formID = "1FAIpQLScmocoi5Eh46SX5k7eZc4wOY0FQrnbg_-YRinQP43tzYACaLA";
+        const url = `https://docs.google.com/forms/d/e/${formID}/formResponse?` + 
+                    `entry.31624889=${encodeURIComponent(sClass)}&` + 
+                    `entry.291661577=${encodeURIComponent(sNo)}&` + 
+                    `entry.1976426889=${encodeURIComponent(sName)}&` + 
+                    `entry.1490605511=1&` + 
+                    `entry.1411146026=${timerSeconds}&` + 
+                    `entry.1027607786=${encodeURIComponent(timeStr)}&` + 
+                    `entry.2124156766=${sVCode}&submit=Submit`;
+
+        window.open(url, '_blank');
+        alert("成果已送出！");
+        location.reload();
+    }
 </script>
 </body>
 </html>
